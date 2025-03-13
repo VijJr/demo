@@ -2,30 +2,27 @@
 
 NOTE: 
 
-The following code is for the entire One piece moveset as demonstrated in the sample game
-
-This library uses the Knit library for convenience, and there is a corresponding controller (local script) also included for reference
-in the shared git folder, but not annotated
-
-This file deals only serverside, and the only moves annotated are Asura and Snake, starting at line 293
-
+This library uses the Knit library for convenience, and there is a corresponding controller (local script)
 This works specifically for r15 rigs, it was not build for r6
+This code only looks at Asura and Snake man move in the roblox game
 
 --]]
 
 
-
+-- Global variables declared at the top for convenience including Knit required modules, Rock module for debris, 
+-- debris service for managed cleanup, tweens, etc
 local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
 local GeneralFunctions = require(game.ReplicatedStorage.general_resources.General)
 local RockModule = require(game.ReplicatedStorage.general_resources.RockModule)
 local debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
-local Knockback = require(game.ReplicatedStorage.general_resources.Knockback)
+
+-- These two vars hold data objects which are injected OnInit using Knit from an external service. Omitted for brevity
 local serverData = nil
 local dataService = nil
 
 
--- Create events 
+-- Creates events that are used in the file according to the Knit guidelines 
 local OnepieceService = Knit.CreateService { Name = "OnepieceService", Client = {
 	changeLevel = Knit.CreateSignal(),
 	damage = Knit.CreateSignal(),
@@ -35,59 +32,6 @@ local OnepieceService = Knit.CreateService { Name = "OnepieceService", Client = 
 	stopSnake = Knit.CreateSignal(),
 	stopSnake2 = Knit.CreateSignal()
 } }
-
-
-function OnepieceService:KnitInit()
-	dataService = Knit.GetService("DataService")
-	serverData = dataService.OPData
-	
-	-- Debounce
-	local db = false
-	-- Any entity/ player entering the mirror room will be able to warp out of the door 
-	game.Workspace["Mirror Room"].WindowWarp.Handle.Touched:Connect(function(hit)
-		if(hit.Parent:FindFirstChild("HumanoidRootPart")) then
-			if(db) then return end
-			db = true
-			hit.Parent.HumanoidRootPart.CFrame = CFrame.new(0,10,0)
-			wait(1)
-			db = false
-		end
-	end)
-end
-
-
-
--- Changes permissions level for moves from locked based on unlock requirements
-function OnepieceService.Client:ChangeLevel(player, level)
-	self.changeLevel:Fire(player, level)
-	
-	local GUI = player.PlayerGui.Move_GUI
-	
-	if(level > 0) then
-		GUI.MoveSetHolder.S1.S1.TextLabel.Text = "Z: Jet Pistol"
-		GUI.MoveSetHolder.S1.S1.TextLabel2.Text = "Z: Jet Pistol"
-	end
-	if(level > 1) then
-		GUI.MoveSetHolder.S2.S2.TextLabel.Text = "X: Mirror Dimension"
-		GUI.MoveSetHolder.S2.S2.TextLabel2.Text = "X: Mirror Dimension"
-
-	end
-	if(level > 2) then
-		GUI.MoveSetHolder.S3.S3.TextLabel.Text = "C: Quake Slam"
-		GUI.MoveSetHolder.S3.S3.TextLabel2.Text = "C: Quake Slam"
-
-	end
-	if(level > 3) then
-		GUI.MoveSetHolder.S4.S4.TextLabel.Text = "F: Asura Slash"
-		GUI.MoveSetHolder.S4.S4.TextLabel2.Text = "F: Asura Slash"
-
-	end
-	if(level > 4) then
-		GUI.MoveSetHolder.S5.S5.TextLabel.Text = "R: Snake Man (hold)"
-		GUI.MoveSetHolder.S5.S5.TextLabel2.Text = "R: Snake Man (hold)"
-
-	end
-end
 
 
 -- Knockback function with tuned parameters that work best for this move
@@ -114,179 +58,6 @@ function doKb(char, lookvector, kbAmount, customMult)
 	debris:AddItem(velo, 0.2)
 	debris:AddItem(attach, 0.2)
 
-
-end
-
--- Pistol move (not annotated)
-function OnepieceService.Client:HandlePistol(player, data, lv)
-	
-	GeneralFunctions.makeSound("rbxassetid://137463821",player.Character )
-
-	local character = player.Character
-	local rightArm = character.RightLowerArm
-	local rightHand = character.RightHand
-	
-	rightArm.Transparency = 1
-	rightHand.Transparency = 1
-	
-	local part = Instance.new("Part")
-	part.Parent = character
-	part.Anchored = false
-	part.CanCollide = false
-	part.Material = Enum.Material.SmoothPlastic
-	part.Color = Color3.new(0,0,0)
-	part.Size = rightArm.Size
-	part.Name = "fake"
-	
-	local weld = Instance.new("Weld")
-	weld.Name = "fake"
-	weld.Parent = character
-	weld.Part0 = part
-	weld.Part1 = rightArm
-	weld.C0 = CFrame.new(0, -2, 0)
-	
-	local Info = TweenInfo.new(.7, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
-	local Goal = {Size = rightArm.Size + Vector3.new(0, 15, 0) }
-	local Tween = TweenService:Create(part, Info, Goal)
-	
-	local T2 = TweenService:Create(weld, Info,  {C0 =  weld.C0 + Vector3.new(0, 10, 0) })
-	Tween:Play()
-	T2:Play()
-	local connection
-	connection = part.Touched:Connect(function(hit)
-		if(hit.Parent:FindFirstChild("HumanoidRootPart")) then
-			if(hit.Parent == character) then return end
-			if((hit.Parent.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude > 100) then return end
-			hit.Parent.Humanoid:TakeDamage(serverData.pistol.damage)
-			
-			
-			Knockback.Knockback(character, hit.Parent, Vector3.new(0,30,0), 100, false)
-
-			self.damage:Fire(player, hit.Parent, data.pistol.damage)
-			
-			GeneralFunctions.makeSound("rbxassetid://9117969687",player.Character )
-
-			connection:Disconnect()
-		end
-	end)
-	
-	task.delay(4, function()
-		connection:Disconnect()
-	end)
-end
-
--- Pistol end marked by anim markers
-function OnepieceService.Client:EndPistol(player, data)
-	local character = player.Character
-	local rightArm = character.RightLowerArm
-	local rightHand = character.RightHand
-
-	rightArm.Transparency = 0
-	rightHand.Transparency = 0
-	
-	for _,x in pairs(character:GetChildren()) do
-		if(x.Name == "fake") then
-			x:Destroy()
-		end
-	end
-
-end
-
--- Mirror move 
-function OnepieceService.Client:HandleMirror(player, data, enemies)
-	GeneralFunctions.makeSound("rbxassetid://4562690876",player.Character )
-
-	local character = player.Character
-	local b4 = character.HumanoidRootPart.CFrame
-	local t = task.delay(serverData.mirror.duration, function()
-		if(character.HumanoidRootPart.Position.Y < 4000) then return end
-
-		character.HumanoidRootPart.CFrame = b4
-	end)
-	
-	--character.Humanoid.Died:Connect(function()
-	--	task.cancel(t)
-	--end)
-	
-	for i,x in pairs(enemies) do
-		local original = x.HumanoidRootPart.CFrame
-		local z = task.delay(serverData.mirror.duration, function()
-			if(x.HumanoidRootPart.Position.Y < 4000) then return end
-			x.HumanoidRootPart.CFrame = original
-		end)
-		--x.Humanoid.Died:Connect(function()
-		--	task.cancel(z)
-		--end)
-		
-		local originCF = CFrame.new(172, 4998.363, 119.095)
-		local vector = (CFrame.new(1, 0, 0 ) * CFrame.Angles(0,math.rad(math.random(360)),0)).LookVector
-		local dis = math.random(30, 60)
-		x.HumanoidRootPart.CFrame = originCF + vector *dis
-		
-	
-	end
-	character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(179.7, 5014.163, 26.495), Vector3.new(172, 4998.363, 119.095))
-
-end
-
--- Quake move
-function OnepieceService.Client:HandleQuake(player, data, pos, enemies)
-	GeneralFunctions.makeSound("rbxassetid://9112796414",player.Character, 0, false, false, 3 )
-	GeneralFunctions.makeSound("rbxassetid://9125402735",player.Character )
-	local character = player.Character
-
-	local im1 = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.quake.cracks:Clone()
-	local im2 = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.quake.cracks:Clone()
-	im1.Parent = character
-	im2.Parent = character
-	
-	im1.CFrame = character.HumanoidRootPart.CFrame 
-	im2.CFrame = character.HumanoidRootPart.CFrame 
-	
-
-	for _,x in pairs(game:GetService("Players"):GetPlayers()) do
-		if((x.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude < 300) then
-			self.applyFx:Fire(x)
-		end
-	end
-
-
-
-	
-	local weld1 = Instance.new("Weld")
-	weld1.Parent = character
-	weld1.Part0 = character.HumanoidRootPart
-	weld1.Part1 = im1
-	weld1.C0 = CFrame.new(-3, 0, -2)
-
-	local weld2 = Instance.new("Weld")
-	weld2.Parent = character
-	weld2.Part0 = character.HumanoidRootPart
-	weld2.Part1 = im2
-	weld2.C0 = CFrame.new(3, 0, -2)
-	
-	
-	debris:AddItem(im1, 1)
-	debris:AddItem(weld1, 1)
-	debris:AddItem(weld2, 1)
-	debris:AddItem(im2, 1)
-
-	GeneralFunctions.Create(10, player.Character.HumanoidRootPart.Position, 3, 1, false)
-	GeneralFunctions.Create(13, player.Character.HumanoidRootPart.Position, 5, 1, false)
-	GeneralFunctions.Create(16, player.Character.HumanoidRootPart.Position, 7, 1, false)
-	GeneralFunctions.Create(23, player.Character.HumanoidRootPart.Position, 9, 1, false)
-	GeneralFunctions.Create(30, player.Character.HumanoidRootPart.Position, 14, 1, false)
-	GeneralFunctions.Create(45, player.Character.HumanoidRootPart.Position, 20, 1, false)
-	GeneralFunctions.Create(60, player.Character.HumanoidRootPart.Position, 25, 1, false)
-	GeneralFunctions.Create(80, player.Character.HumanoidRootPart.Position, 30, 1, false)
-	
-	
-	for _, x in pairs(enemies) do
-		if((x.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude > 300) then continue end
-		x.Humanoid:TakeDamage(serverData.quake.damage)
-		Knockback.Knockback(character, x, Vector3.new(0,30,0), 130, false)
-
-	end
 
 end
 
