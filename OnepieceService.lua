@@ -36,28 +36,24 @@ local OnepieceService = Knit.CreateService { Name = "OnepieceService", Client = 
 
 -- Knockback function with tuned parameters that work best for this move
 function doKb(char, lookvector, kbAmount, customMult)
+	if not char or not char:FindFirstChild("HumanoidRootPart") then
+	    return
+	end
+	
 	local mass = 0
-	for _, y in pairs(char:GetDescendants()) do
+	for _, y in pairs(char:GetChildren()) do
 		if(y:IsA("BasePart")) then
 			mass += y:GetMass()
 		end
 	end
-	local mult = 1
-	if(customMult) then
-		mult = customMult
-	end
 
-	local attach = Instance.new("Attachment")
-	attach.Parent = char.HumanoidRootPart
 
-	local velo = Instance.new("VectorForce")
-	velo.RelativeTo = Enum.ActuatorRelativeTo.World
-	velo.Force = Vector3.new(lookvector.x*kbAmount*mass, 300.3341837*mass*mult, lookvector.z*kbAmount*mass)
-	velo.Attachment0 = attach
-	velo.Parent = char.HumanoidRootPart
-	debris:AddItem(velo, 0.2)
-	debris:AddItem(attach, 0.2)
+        local mult = customMult or 1
+        local forceX = lookvector.x * kbAmount * mass
+        local forceZ = lookvector.z * kbAmount * mass
+        local impulseForce = Vector3.new(forceX, mass * mult, forceZ)
 
+        char.HumanoidRootPart:ApplyImpulse(impulseForce)
 
 end
 
@@ -66,34 +62,43 @@ end
 -- the move like execution time, distance of hitbox, damage, etc
 function OnepieceService.Client:HandleAsura(player, data, enemy)
 	local character = player.Character
+	if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Head") then
+		return
+	end
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local MovesetResources = ReplicatedStorage.Moveset_Resources.onepiece_resources.Asura
 	
-	-- For this move add swords and a glowing red eye cosmetic to player during execution
-	local acc = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura["Three-Sword Style"].mouth:Clone()
-	character.Humanoid:AddAccessory(acc)
-	local acc2 = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura["Three-Sword Style"].right:Clone()
-	character.Humanoid:AddAccessory(acc2)
 	
-	local acc3 = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura["Three-Sword Style"].left:Clone()
-	character.Humanoid:AddAccessory(acc3)
+	local accessories = {
+		MovesetResources["Three-Sword Style"].mouth:Clone(),
+		MovesetResources["Three-Sword Style"].right:Clone(),
+		MovesetResources["Three-Sword Style"].left:Clone()
+	}
+	for _, acc in ipairs(accessories) do
+		Humanoid:AddAccessory(acc)
+		task.delay(serverData.asura.duration, function()
+			acc:Destroy()
+		end)
+	end
 	
-	local eye = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura.eye.eye:Clone()
+	local eye = MovesetResources.eye.eye:Clone()
 	eye.Parent = character.Head
+	task.delay(serverData.asura.duration, function()
+		eye:Destroy()
+	end)
 	
 	-- General functions is a service of my own methods I reference for convenience and reuse. This makes a sound and cleans automatically
 	GeneralFunctions.makeSound("rbxassetid://858508159",player.Character )
 	
-	-- Clean cosmetic items w/ debris 
 	local pos = character.HumanoidRootPart.CFrame
-	debris:AddItem(acc2, serverData.asura.duration+1)
-	debris:AddItem(acc, serverData.asura.duration+1)
-	debris:AddItem(acc3, serverData.asura.duration+1)
-	debris:AddItem(eye, serverData.asura.duration+1)
+	local players = game:GetService("Players"):GetPlayers()
+	local rootPos = character.HumanoidRootPart.Position
 
 	-- Apply fx is a method listening in the local controller. For nearby playersr within 300 make screenshake with custom library
-	for _,x in pairs(game:GetService("Players"):GetPlayers()) do
-		if((x.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude < 300) then
-			self.applyFx:Fire(x)
-		end
+	for _,x in pairs(players) do
+		local xRoot = x.Character and x.Character:FindFirstChild("HumanoidRootPart")
+		if xRoot and (xRoot.Position - rootPos).Magnitude < 300 then
+		self.applyFx:Fire(x)
 	end
 
 
@@ -101,15 +106,17 @@ function OnepieceService.Client:HandleAsura(player, data, enemy)
 	for i = 1,3 do
 		local vec = (pos * CFrame.Angles(0,math.rad(120*i), 0)).LookVector
 		local dist = math.random(10, 20)
-		local lightning = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura["A - ELECTRICITY 01"]:Clone()
-		lightning.Parent= character
-		lightning.CFrame =pos +  vec*dist
+		local lightning = MovesetResources["A - ELECTRICITY 01"]:Clone()
+		lightning.Parent = character
+		lightning.CFrame = pos +  vec * dist
 		task.delay(1, function()
 			lightning:Destroy()
 		end)
 		
 	end
-	
+
+	local Info = TweenInfo.new(1)
+
 	-- Add 7 squares that rise, looks like debris under pressure. Uses same idea as previous lightining fx
 	for i = 1,7 do
 		-- Random distance away
@@ -127,7 +134,6 @@ function OnepieceService.Client:HandleAsura(player, data, enemy)
 		part.CFrame =pos +  vec*dist
 		
 		-- Tween to rise 7 higher in 1 second
-		local Info = TweenInfo.new(1)
 		local Goal = {Position = part.Position + Vector3.new(0, 7, 0) }
 		local Tween = TweenService:Create(part, Info, Goal)
 		Tween:Play()
