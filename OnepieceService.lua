@@ -36,10 +36,12 @@ local OnepieceService = Knit.CreateService { Name = "OnepieceService", Client = 
 
 -- Knockback function with tuned parameters that work best for this move
 function doKb(char, lookvector, kbAmount, customMult)
+	-- If character or humanoid root part is nil terminate to avoid errors
 	if not char or not char:FindFirstChild("HumanoidRootPart") then
 	    return
 	end
-	
+
+	-- Calculate the total mass by looping over the direct children that are baseparts, and summing the mass 
 	local mass = 0
 	for _, y in pairs(char:GetChildren()) do
 		if(y:IsA("BasePart")) then
@@ -47,17 +49,22 @@ function doKb(char, lookvector, kbAmount, customMult)
 		end
 	end
 
-
+	-- Generate force vectors by using the lookvector direction and scaling by mass + mult factor so it translates the same 
+	-- In case custom mult is nil choose 1 to prevent errors
         local mult = customMult or 1
         local forceX = lookvector.x * kbAmount * mass
         local forceZ = lookvector.z * kbAmount * mass
+	-- In terms of y direction no need for a look vector since the upward direction stays constant 
         local impulseForce = Vector3.new(forceX, mass * mult, forceZ)
 
+	-- Apply an impulse force to the character 
         char.HumanoidRootPart:ApplyImpulse(impulseForce)
 
 end
 
+-- Helper function to generate rising debris for asura skill 
 local function createRisingPart(position)
+	-- Create a part, set its size, material, color, and other generic properties 
 	local part = Instance.new("Part")
 	part.Size = Vector3.new(0.5, 0.5, 0.5)
 	part.Material = Enum.Material.SmoothPlastic
@@ -66,32 +73,48 @@ local function createRisingPart(position)
 	part.CanCollide = false
 	part.Parent = character
 	part.CFrame = position
-	
+
+	-- Create a tween that lasts for 1 second, take its current position and move it up 7 studs on the y axis
 	local tweenInfo = TweenInfo.new(1)
 	local goal = {Position = part.Position + Vector3.new(0, 7, 0)}
+	-- Create and play the tween 
 	local tween = TweenService:Create(part, tweenInfo, goal)
 	tween:Play()
-	
+
+	-- Delay by 1 second and destroy the part for asynchronous cleanup
 	task.delay(1, function() part:Destroy() end)
 end
 
+-- This is a helper function to apply the fx lightning and rising debris, referencing the above method 
 local function asuraFX(character, pos)
+	-- Setting aside this replicated storage variable for ease of use, accessing the file tree for the asura skill
 	local repStorage = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura
-	
+
+	-- Generate three lightning 
 	for i = 1,3 do
+		-- Take the current pos of the character, based on the current i multiply by 120 to get rotating angles in intervals of 120 degrees
+		-- Then take the look vector of that new cframe to know which direction to place the part in 
 		local vec = (pos * CFrame.Angles(0, math.rad(120 * i), 0)).LookVector
+		-- Create a random number from 10-20
 		local dist = math.random(10, 20)
+		-- Clone the lightning from rep storage
 		local lightning = repStorage["A - ELECTRICITY 01"]:Clone()
 		lightning.Parent = character
+		-- Set the lightning pos by appending the lookvectoro scaled by the random distance to the position of the character
 		lightning.CFrame = pos + vec * dist
+		-- Auto cleanup
 		task.delay(1, function() lightning:Destroy() end)
 	end
 
 
-
+	-- Generate 7 rising debris 
 	for i = 1,7 do
+		-- Random distance calc (same as above)
 		local dist = math.random(10, 20)
+		-- Similar logic as above but now the angles are truly randomized since 7 parts gives enough to evenly distribute
+		-- Logic: Gen 3 random angles, apply the rotation to the current position and take that lookvector to get a random vector away from char
 		local vec = (pos * CFrame.Angles(math.rad(math.random(360)), math.rad(math.random(360)), math.rad(math.random(360)))).LookVector
+		-- Apply the position on the part using the above method, by using the same logic as seen in the lightning skill 
 		createRisingPart(pos + vec * dist, character)
 	end
 
