@@ -191,7 +191,7 @@ end
 
 
 -- Flies towards enemy, this is an aux method for clean purposes. Duration is how long the flight lasts before target is reached
-function StartFlight(player, data, enemy, duration)
+function StartFlight(player: Player, data, enemy: Part, duration: number)
 	-- Validate character again after the 1 second delay
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then
@@ -349,7 +349,7 @@ function StartFlight(player, data, enemy, duration)
 end
 
 -- Cleans the swords and cosmetics from the asura move when called in controller from anim sequence track markers (in case debris is slow)
-function OnepieceService.Client:CleanAsura(player)
+function OnepieceService.Client:CleanAsura(player: Player)
 	-- Get and validate character
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then
@@ -366,7 +366,7 @@ function OnepieceService.Client:CleanAsura(player)
 end
 
 -- This is fired on local if there are no enemies in hitbox. Functions like a teleport move 
-function OnepieceService.Client:HandleAsuraTeleport(player, data)
+function OnepieceService.Client:HandleAsuraTeleport(player: Player, data)
 	-- Once again get and validate the character
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Head") then
@@ -394,7 +394,7 @@ end
 
 	
 -- Once the animation sequence for the plain teleport is over, actually teleport the character forward
-function OnepieceService.Client:doTeleport(player, data)
+function OnepieceService.Client:doTeleport(player: Player, data)
 	-- Validate character and get it 
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then
