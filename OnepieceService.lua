@@ -261,6 +261,10 @@ end
 
 -- Cleans the swords and cosmetics from the asura move when called in controller from anim sequence track markers (in case debris is slow)
 function OnepieceService.Client:CleanAsura(player)
+	local character = player.Character
+	if not character or not character:FindFirstChild("HumanoidRootPart") then
+		return
+	end
 	local accessories = {"mouth", "right", "left", "eye"}
 	for _, accessory in ipairs(accessories) do
 		local part = (accessory == "eye" and character.Head or character):FindFirstChild(accessory)
