@@ -135,149 +135,185 @@ function OnepieceService.Client:HandleAsura(player, data, enemy)
 	local Humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not Humanoid then return end
 
-	-- Clone accessories and attach them to the player
+	-- List accessories that need to be applied to player by cloning from rep storage
 	local accessories = {
 		MovesetResources["Three-Sword Style"].mouth:Clone(),
 		MovesetResources["Three-Sword Style"].right:Clone(),
 		MovesetResources["Three-Sword Style"].left:Clone()
 	}
 
+	-- For each accessory listed, apply to humanoid and set an asynch timer for automatic cleanup based on the desired duration
+	-- as specified in the serverData module 
 	for _, acc in ipairs(accessories) do
 		Humanoid:AddAccessory(acc)
-		task.delay(serverData.asura.duration + 1, function()
+		task.delay(serverData.asura.duration, function()
 			acc:Destroy()
 		end)
 	end
 
+	-- Do the same for the eye part 
 	local eye = MovesetResources.eye.eye:Clone()
 	eye.Parent = character.Head
-	task.delay(serverData.asura.duration + 1, function()
+	task.delay(serverData.asura.duration, function()
 		eye:Destroy()
 	end)
 
-	-- Apply FX to nearby players
+	--  Get current position of player and all players in game with the player service
 	local players = game:GetService("Players"):GetPlayers()
 	local rootPos = character.HumanoidRootPart.Position
 
+	-- Check each player, and make sure they have a rootpart with ternary operator for error checking
 	for _, x in ipairs(players) do
 		local xRoot = x.Character and x.Character:FindFirstChild("HumanoidRootPart")
+		-- If the player exists (including the current character), subtract positions and take the magnitude distance
+		-- If the player is within 300 studs of the current character, apply shake effect which happens on local script 
 		if xRoot and (xRoot.Position - rootPos).Magnitude < 300 then
-			self.applyFx:Fire(x)
+			self.applyFx:Fire(x) -- Pass in the desired player to create a local screenshake effect
 		end
 	end
 
-
+	-- Apply the external effects defined above 
 	local pos = character.HumanoidRootPart.CFrame
 	asuraFX(character, pos)
 
 
-	-- Wait and initiate flight
+	-- Wait 1 second and initiate flight
 	task.wait(1)
+	-- Subtract one since 1 second has passed 
 	StartFlight(player, serverData, enemy, serverData.asura.duration - 1)
 end
 
 
 -- Flies towards enemy, this is an aux method for clean purposes. Duration is how long the flight lasts before target is reached
 function StartFlight(player, data, enemy, duration)
+	-- Validate character again after the 1 second delay
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then
 		return
 	end
+	-- General functions is a moduel with helpful functions, this syntax plays sound at the player.character location on server
 	GeneralFunctions.makeSound("rbxassetid://137463716",player.Character )
 	
 	
-	-- Generate hitbox and weld onto player since player is moving
+	-- Create helpful variables for moveset resources 
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local MovesetResources = ReplicatedStorage.Moveset_Resources.onepiece_resources.Asura
-	
+
+	-- Clone hitbox from moveset resources, apply position as 4 studs in front of the character by scaling the lookvector and adding it on 
+	-- This is done because the hitbox part is centered in the middle and we want to attach on one end (it is 8 studs wide)
 	local hitbox = MovesetResources.hitbox2:Clone()
 	hitbox.CFrame = character.HumanoidRootPart.CFrame + character.HumanoidRootPart.CFrame.LookVector * 4
 	hitbox.Parent = character
-	
+
+	-- Create a weld and attach the hotbox to the character rootpart so while in motion the hitbox stays 
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = character.HumanoidRootPart
 	weld.Part1 = hitbox
 	weld.Parent = hitbox
-	
+
+	-- Asynch cleanup 
 	task.delay(duration, function()
 		hitbox:Destroy()
 		weld:Destroy()
 	end)
 		
-	-- Create beam and add one attachement to starting location, the other on the players root so it moves w/ player
+	-- Create beam and add one attachement to starting location, the other on the players root so it moves w/ player. Adds appropriate parents
+	-- Beam is a folder containing the beam and attachements. Attachement start is set to the current character position 
 	local beam = MovesetResources.Beam:Clone()
 	beam.Parent = character
 	beam.Start.CFrame = character.HumanoidRootPart.CFrame
 	
+	-- Attachement end is set into the humanoid root part. Also there are two beams for color variation so the same thing happens there 
 	local att = beam.End.Attachment1
 	local b = beam.End.beam2
 	att.Parent, b.Parent = character.HumanoidRootPart, character.HumanoidRootPart
-	
+
+	-- Async cleanup 
 	task.delay(duration, function()
 		beam:Destroy()
 		att:Destroy()
 		b:Destroy()
 	end)
 	
-	-- Flashy fx added to the player 
-	local expl = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura.Explosion.Hit:Clone()
+	-- Get the flashy vfx from storage that are applied to the character for the duration of the move 
+	local expl = MovesetResources.Explosion.Hit:Clone()
 	expl.Parent = character.HumanoidRootPart
 	task.delay(duration, function()
 		expl:Destroy()
 	end)	
 		
-	-- Move the character towards the enemy 
-
+	-- Validate the enemy exists to prevent errors
 	if not enemy or not enemy:FindFirstChild("RootRigAttachment") then
 		return
 	end
-		
+
+	-- Create new align position to pull the character towards the enemy location regardless of how either character moves 
 	local align = Instance.new("AlignPosition")
 	align.Parent = character
+	-- Set to true for a smooth motion 
 	align.RigidityEnabled = true
+	-- Set attachments to the relevant root attachements of both characters
 	align.Attachment0 = character.HumanoidRootPart.RootRigAttachment
 	align.Attachment1 = enemy.RootRigAttachment
+	-- Async cleanup 
 	task.delay(duration, function()
 		align:Destroy()
 	end)	
 		
-	-- Once character reaches enemy, fire move 
+	-- Player service 
 	local players = game:GetService("Players")
 
+	-- Create  a connection to the hitbox touched event,
 	local connect
 	connect = hitbox.Touched:Connect(function(hit)
+		-- Make sure the hit character is a humanoid with a root part (npc or player doesnt matter)
 		if(hit.Parent:FindFirstChild("HumanoidRootPart")) then
+			-- Get the rootpart if it is not nill 
 			local hitParent = hit.Parent
 			local hitRoot = hitParent and hitParent:FindFirstChild("HumanoidRootPart")
-			
+			-- Validate not nil 
 			if hitParent == character or not hitRoot then return end
-			
+
+			-- Local listener to create the hitframe white/black sequence for the character 
 			OnepieceService.Client.hitframe:Fire(player, hitParent, character)
-		
+
+			-- Get the player from enemy character, and generate hitframe for that local too. 
 			local hitPlayer = players:GetPlayerFromCharacter(hitParent)
+			-- Validate not nil in case hit character is a NPC 
 			if hitPlayer then
 				OnepieceService.Client.hitframe:Fire(hitPlayer, hitParent, character)
 			end
 
+			-- Generate sound fx
 			GeneralFunctions.makeSound("rbxassetid://5989945551",player.Character )
 			GeneralFunctions.makeSound("rbxassetid://7390331288",player.Character )
+			-- Destroy align once the two characters reach if the enemy hasn't managed to get away / timout the skill 
 			align:Destroy()
 			
 			-- Creates a debris field with 16 radius, and 7 size, 1 second until despawn and don't fly around (false)
 			GeneralFunctions.Create(16, hit.Position, 7, 1, false)
 			
-			-- Fx slash  
+			-- Get the slash vfx and apply it to the enemy character
 			local fx = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura.CUTS:Clone()
 			fx.Parent = hit
-			debris:AddItem(fx, 1)
-			
-			-- For every 0.1 seconds to a fixed amount of damage and fire sound so it feels like multiple slashes
+
+			-- Async cleanup
+			task.delay(1, function()
+				fx:Destroy()
+			end)	
+				
+			-- Custom countdown function that runs the code block every 0.1 seconds until 1 minute has passed
 			GeneralFunctions.countdown(1, 0.1, false, function()
+				-- Get the humanoid and validate it 
 				local hitHumanoid = hitParent:FindFirstChildOfClass("Humanoid")
 				if not hitHumanoid then return end
-			
+
+				-- Check the magnitude difference between character and enemy is not more than 100 studs
+				-- To prevent exploitation from a distance 
 				if (hitRoot.Position - character.HumanoidRootPart.Position).Magnitude > 100 then return end
-			
+
+				-- Do damage to enemy humanoid, and fire the damage local method so the character can see the GUI popup for 
+				-- damage on the local side screen + make sound 
 				hitHumanoid:TakeDamage(serverData.asura.damage)
 				OnepieceService.Client.damage:Fire(player, hitParent, serverData.asura.damage)
 				GeneralFunctions.makeSound("rbxassetid://7118966167", hitParent)
@@ -290,12 +326,15 @@ function StartFlight(player, data, enemy, duration)
 			beam:Destroy()
 			weld:Destroy()
 			hitbox:Destroy()
+			-- Stop all anim tracks if they haven't been stopped already
 			for i,v in pairs(player.Character.Humanoid:GetPlayingAnimationTracks()) do
 				v:Stop()
 			end
 
 			-- Clean local elements, stop anim, and clean other cosmetics 
 			OnepieceService.Client.endAsura:Fire(player, hit.Parent )
+				
+			-- Disconnect connection to prevent memory usage 
 			connect:Disconnect()
 		end
 
@@ -305,19 +344,24 @@ end
 
 -- Cleans the swords and cosmetics from the asura move when called in controller from anim sequence track markers (in case debris is slow)
 function OnepieceService.Client:CleanAsura(player)
+	-- Get and validate character
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then
 		return
 	end
+	-- Create a list of accessories to grab, iterate over the accessories
 	local accessories = {"mouth", "right", "left", "eye"}
 	for _, accessory in ipairs(accessories) do
+		-- If the accessory is eye, get from head otherwise get from character. Then find first child 
 		local part = (accessory == "eye" and character.Head or character):FindFirstChild(accessory)
+		-- If the part is not nil/ validated, destroy the part 
 		if part then part:Destroy() end
 	end
 end
 
 -- This is fired on local if there are no enemies in hitbox. Functions like a teleport move 
 function OnepieceService.Client:HandleAsuraTeleport(player, data)
+	-- Once again get and validate the character
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Head") then
 		return
@@ -329,7 +373,8 @@ function OnepieceService.Client:HandleAsuraTeleport(player, data)
 	local Humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not Humanoid then return end
 
-	-- Clone accessories and attach them to the player
+	-- Clone accessories and attach them to the player using the same idea from above (omitted explanations for brevity)
+	-- Only difference is now we use a set 2s delay timer 
 	local accessories = {
 		MovesetResources["Three-Sword Style"].mouth:Clone(),
 		MovesetResources["Three-Sword Style"].right:Clone(),
@@ -337,23 +382,23 @@ function OnepieceService.Client:HandleAsuraTeleport(player, data)
 	}
 	for _, acc in ipairs(accessories) do
 		Humanoid:AddAccessory(acc)
-		print(serverData.asura.duration)
-
 		task.delay(2 , function()
 			print("moog")
 			acc:Destroy()
 		end)
 	end
 
+	-- Add eye in the same way 
 	local eye = MovesetResources.eye.eye:Clone()
 	eye.Parent = character.Head
 	task.delay(2, function()
 		eye:Destroy()
 	end)
 
-
+	-- Make sound
 	GeneralFunctions.makeSound("rbxassetid://858508159",player.Character )
 
+	-- Make the lightning and debris rising as defined in the above method 
 	local pos = character.HumanoidRootPart.CFrame
 	asuraFX(character, pos)
 
@@ -364,17 +409,19 @@ end
 	
 -- Once the animation sequence for the plain teleport is over, actually teleport the character forward
 function OnepieceService.Client:doTeleport(player, data)
+	-- Validate character and get it 
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") then
 		return
 	end
 	GeneralFunctions.makeSound("rbxassetid://1231327271",player.Character )
-		
+
+	-- Store moveset resources 
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local MovesetResources = ReplicatedStorage.Moveset_Resources.onepiece_resources.Asura
 
 		
-	-- Same beam from earlier
+	-- Same beam from earlier, same logic 
 	local beam = MovesetResources.Beam:Clone()
 	beam.Parent = character
 	beam.Start.CFrame = character.HumanoidRootPart.CFrame
@@ -382,7 +429,8 @@ function OnepieceService.Client:doTeleport(player, data)
 	local att = beam.End.Attachment1
 	local b = beam.End.beam2
 	att.Parent, b.Parent = character.HumanoidRootPart, character.HumanoidRootPart
-	
+
+	-- Auto cleanup 
 	task.delay(1, function()
 		beam:Destroy()
 		att:Destroy()
@@ -390,6 +438,10 @@ function OnepieceService.Client:doTeleport(player, data)
 	end)
 	
 	-- Move the character forward based on the data provided (modifyable in serverData easily)
+	-- Calculated by getting the look vector and scaling the distance by the distance in server data 
+	-- Then applying that distance vector3 to the cframe current position so the character gets jumped ahead in the direction they were looking 
+	-- Note we take the rootpart cframe so it wouldn't be looking up or down unless they glitched the character
+	-- In this case it is possible to set the y-component to 0 in the lookvector to prevent glitching under the map, but it wasn't a concern
 	local moveDirection = character.HumanoidRootPart.CFrame.LookVector * serverData.asura.distance
 	character.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame + moveDirection
 end
