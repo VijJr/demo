@@ -145,25 +145,7 @@ function OnepieceService.Client:HandleAsura(player, data, enemy)
 
 
 	local pos = character.HumanoidRootPart.CFrame
-
-
-	-- Provide the same fx from earlier
-	for i = 1,3 do
-		local vec = (pos * CFrame.Angles(0, math.rad(120 * i), 0)).LookVector
-		local dist = math.random(10, 20)
-		local lightning = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura["A - ELECTRICITY 01"]:Clone()
-		lightning.Parent = character
-		lightning.CFrame = pos + vec * dist
-		task.delay(1, function() lightning:Destroy() end)
-	end
-
-
-
-	for i = 1,7 do
-		local dist = math.random(10, 20)
-		local vec = (pos * CFrame.Angles(math.rad(math.random(360)), math.rad(math.random(360)), math.rad(math.random(360)))).LookVector
-		createRisingPart(pos + vec * dist, character)
-	end
+	asuraFX(character, pos)
 
 
 	-- Wait and initiate flight
@@ -350,25 +332,7 @@ function OnepieceService.Client:HandleAsuraTeleport(player, data)
 	GeneralFunctions.makeSound("rbxassetid://858508159",player.Character )
 
 	local pos = character.HumanoidRootPart.CFrame
-
-
-	-- Provide the same fx from earlier
-	for i = 1,3 do
-		local vec = (pos * CFrame.Angles(0, math.rad(120 * i), 0)).LookVector
-		local dist = math.random(10, 20)
-		local lightning = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura["A - ELECTRICITY 01"]:Clone()
-		lightning.Parent = character
-		lightning.CFrame = pos + vec * dist
-		task.delay(1, function() lightning:Destroy() end)
-	end
-
-
-	
-	for i = 1,7 do
-		local dist = math.random(10, 20)
-		local vec = (pos * CFrame.Angles(math.rad(math.random(360)), math.rad(math.random(360)), math.rad(math.random(360)))).LookVector
-		createRisingPart(pos + vec * dist)
-	end
+	asuraFX(character, pos)
 
 end
 
