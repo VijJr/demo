@@ -57,6 +57,24 @@ function doKb(char, lookvector, kbAmount, customMult)
 
 end
 
+local function createRisingPart(position)
+	local part = Instance.new("Part")
+	part.Size = Vector3.new(0.5, 0.5, 0.5)
+	part.Material = Enum.Material.SmoothPlastic
+	part.Color = Color3.new(0, 255, 0)
+	part.Anchored = true
+	part.CanCollide = false
+	part.Parent = character
+	part.CFrame = position
+	
+	local tweenInfo = TweenInfo.new(1)
+	local goal = {Position = part.Position + Vector3.new(0, 7, 0)}
+	local tween = TweenService:Create(part, tweenInfo, goal)
+	tween:Play()
+	
+	task.delay(1, function() part:Destroy() end)
+end
+
 
 -- Asura move server-side method as called in local controller. local generates hitbox and feeds the enemy as input along with data about 
 -- the move like execution time, distance of hitbox, damage, etc
@@ -302,23 +320,7 @@ function OnepieceService.Client:HandleAsuraTeleport(player, data)
 end
 
 	
-local function createRisingPart(position)
-	local part = Instance.new("Part")
-	part.Size = Vector3.new(0.5, 0.5, 0.5)
-	part.Material = Enum.Material.SmoothPlastic
-	part.Color = Color3.new(0, 255, 0)
-	part.Anchored = true
-	part.CanCollide = false
-	part.Parent = character
-	part.CFrame = position
-	
-	local tweenInfo = TweenInfo.new(1)
-	local goal = {Position = part.Position + Vector3.new(0, 7, 0)}
-	local tween = TweenService:Create(part, tweenInfo, goal)
-	tween:Play()
-	
-	task.delay(1, function() part:Destroy() end)
-end
+
 	
 -- Once the animation sequence for the plain teleport is over, actually teleport the character forward
 function OnepieceService.Client:doTeleport(player, data)
