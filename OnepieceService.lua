@@ -35,7 +35,7 @@ local OnepieceService = Knit.CreateService { Name = "OnepieceService", Client = 
 
 
 -- Knockback function with tuned parameters that work best for this move
-function doKb(char, lookvector, kbAmount, customMult)
+function doKb(char: Model, lookvector: Vector3, kbAmount: number, customMult: number)
 	-- If character or humanoid root part is nil terminate to avoid errors
 	if not char or not char:FindFirstChild("HumanoidRootPart") then
 	    return
@@ -63,7 +63,7 @@ function doKb(char, lookvector, kbAmount, customMult)
 end
 
 -- Helper function to generate rising debris for asura skill 
-local function createRisingPart(position)
+local function createRisingPart(position: CFrame)
 	-- Create a part, set its size, material, color, and other generic properties 
 	local part = Instance.new("Part")
 	part.Size = Vector3.new(0.5, 0.5, 0.5)
@@ -86,7 +86,7 @@ local function createRisingPart(position)
 end
 
 -- This is a helper function to apply the fx lightning and rising debris, referencing the above method 
-local function asuraFX(character, pos, Humanoid )
+local function asuraFX(character: Model, pos: CFrame, Humanoid: Humanoid )
 	-- Setting aside this replicated storage variable for ease of use, accessing the file tree for the asura skill
 	local repStorage = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura
 
@@ -148,7 +148,7 @@ end
 
 -- Asura move server-side method as called in local controller. local generates hitbox and feeds the enemy as input along with data about 
 -- the move like execution time, distance of hitbox, damage, etc
-function OnepieceService.Client:HandleAsura(player, data, enemy)
+function OnepieceService.Client:HandleAsura(player: Player, data, enemy: Part)
 	-- Validate character and necessary parts
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Head") then
