@@ -86,9 +86,34 @@ local function createRisingPart(position)
 end
 
 -- This is a helper function to apply the fx lightning and rising debris, referencing the above method 
-local function asuraFX(character, pos)
+local function asuraFX(character, pos, Humanoid )
 	-- Setting aside this replicated storage variable for ease of use, accessing the file tree for the asura skill
 	local repStorage = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura
+
+	-- List accessories that need to be applied to player by cloning from rep storage
+	local accessories = {
+		repStorage["Three-Sword Style"].mouth:Clone(),
+		repStorage["Three-Sword Style"].right:Clone(),
+		repStorage["Three-Sword Style"].left:Clone()
+	}
+
+	-- For each accessory listed, apply to humanoid and set an asynch timer for automatic cleanup based on the desired duration
+	-- as specified in the serverData module 
+	for _, acc in ipairs(accessories) do
+		Humanoid:AddAccessory(acc)
+		task.delay(serverData.asura.duration, function()
+			acc:Destroy()
+		end)
+	end
+
+	-- Do the same for the eye part 
+	local eye = repStorage.eye.eye:Clone()
+	eye.Parent = character.Head
+	task.delay(serverData.asura.duration, function()
+		eye:Destroy()
+	end)
+
+	
 
 	-- Generate three lightning 
 	for i = 1,3 do
@@ -117,6 +142,7 @@ local function asuraFX(character, pos)
 		-- Apply the position on the part using the above method, by using the same logic as seen in the lightning skill 
 		createRisingPart(pos + vec * dist, character)
 	end
+	
 
 end
 
@@ -135,28 +161,10 @@ function OnepieceService.Client:HandleAsura(player, data, enemy)
 	local Humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not Humanoid then return end
 
-	-- List accessories that need to be applied to player by cloning from rep storage
-	local accessories = {
-		MovesetResources["Three-Sword Style"].mouth:Clone(),
-		MovesetResources["Three-Sword Style"].right:Clone(),
-		MovesetResources["Three-Sword Style"].left:Clone()
-	}
-
-	-- For each accessory listed, apply to humanoid and set an asynch timer for automatic cleanup based on the desired duration
-	-- as specified in the serverData module 
-	for _, acc in ipairs(accessories) do
-		Humanoid:AddAccessory(acc)
-		task.delay(serverData.asura.duration, function()
-			acc:Destroy()
-		end)
-	end
-
-	-- Do the same for the eye part 
-	local eye = MovesetResources.eye.eye:Clone()
-	eye.Parent = character.Head
-	task.delay(serverData.asura.duration, function()
-		eye:Destroy()
-	end)
+	
+	-- Apply the external effects defined above 
+	local pos = character.HumanoidRootPart.CFrame
+	asuraFX(character, pos, Humanoid)
 
 	--  Get current position of player and all players in game with the player service
 	local players = game:GetService("Players"):GetPlayers()
@@ -172,9 +180,7 @@ function OnepieceService.Client:HandleAsura(player, data, enemy)
 		end
 	end
 
-	-- Apply the external effects defined above 
-	local pos = character.HumanoidRootPart.CFrame
-	asuraFX(character, pos)
+
 
 
 	-- Wait 1 second and initiate flight
@@ -372,35 +378,15 @@ function OnepieceService.Client:HandleAsuraTeleport(player, data)
 	local MovesetResources = ReplicatedStorage.Moveset_Resources.onepiece_resources.Asura
 	local Humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not Humanoid then return end
-
-	-- Clone accessories and attach them to the player using the same idea from above (omitted explanations for brevity)
-	-- Only difference is now we use a set 2s delay timer 
-	local accessories = {
-		MovesetResources["Three-Sword Style"].mouth:Clone(),
-		MovesetResources["Three-Sword Style"].right:Clone(),
-		MovesetResources["Three-Sword Style"].left:Clone()
-	}
-	for _, acc in ipairs(accessories) do
-		Humanoid:AddAccessory(acc)
-		task.delay(2 , function()
-			print("moog")
-			acc:Destroy()
-		end)
-	end
-
-	-- Add eye in the same way 
-	local eye = MovesetResources.eye.eye:Clone()
-	eye.Parent = character.Head
-	task.delay(2, function()
-		eye:Destroy()
-	end)
+	
+	-- Make the lightning and debris rising as defined in the above method 
+	local pos = character.HumanoidRootPart.CFrame
+	asuraFX(character, pos)
 
 	-- Make sound
 	GeneralFunctions.makeSound("rbxassetid://858508159",player.Character )
 
-	-- Make the lightning and debris rising as defined in the above method 
-	local pos = character.HumanoidRootPart.CFrame
-	asuraFX(character, pos)
+
 
 end
 
