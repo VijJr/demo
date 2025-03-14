@@ -318,7 +318,7 @@ function StartFlight(player: Player, data, enemy: Part, duration: number)
 			GeneralFunctions.Create(16, hit.Position, 7, 1, false)
 			
 			-- Get the slash vfx and apply it to the enemy character
-			local fx = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura.CUTS:Clone()
+			local fx = MovesetResources.CUTS:Clone()
 			fx.Parent = hit
 
 			-- Async cleanup
