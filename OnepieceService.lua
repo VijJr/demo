@@ -273,25 +273,37 @@ end
 -- This is fired on local if there are no enemies in hitbox. Functions like a teleport move 
 function OnepieceService.Client:HandleAsuraTeleport(player, data)
 	local character = player.Character
-	if not character or not character:FindFirstChild("HumanoidRootPart") then
+	if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Head") then
 		return
 	end
-	-- Give the cosmetics
-	local accessories = {"mouth", "right", "left", "eye"}
-	for _, accessory in ipairs(accessories) do
-		local part = (accessory == "eye" and character.Head or character):FindFirstChild(accessory)
-		if part then
-			local accClone = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura["Three-Sword Style"][accessory]:Clone()
-			if accessory == "eye" then
-				accClone.Parent = character.Head
-			else
-				character.Humanoid:AddAccessory(accClone)
-			end
-			task.delay(2, function()
-				accClone:Destroy()
-			end)	
-		end
+
+	-- Cache commonly used services and assets
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local MovesetResources = ReplicatedStorage.Moveset_Resources.onepiece_resources.Asura
+	local Humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not Humanoid then return end
+
+	-- Clone accessories and attach them to the player
+	local accessories = {
+		MovesetResources["Three-Sword Style"].mouth:Clone(),
+		MovesetResources["Three-Sword Style"].right:Clone(),
+		MovesetResources["Three-Sword Style"].left:Clone()
+	}
+	for _, acc in ipairs(accessories) do
+		Humanoid:AddAccessory(acc)
+		print(serverData.asura.duration)
+
+		task.delay(2 , function()
+			print("moog")
+			acc:Destroy()
+		end)
 	end
+
+	local eye = MovesetResources.eye.eye:Clone()
+	eye.Parent = character.Head
+	task.delay(2, function()
+		eye:Destroy()
+	end)
 
 
 	GeneralFunctions.makeSound("rbxassetid://858508159",player.Character )
