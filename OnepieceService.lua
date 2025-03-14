@@ -4,7 +4,7 @@ NOTE:
 
 This library uses the Knit library for convenience, and there is a corresponding controller (local script)
 This works specifically for r15 rigs, it was not build for r6
-This code only looks at Asura and Snake man move in the roblox game
+In the demo every move is implemented but this is only code for the F skill
 
 --]]
 
