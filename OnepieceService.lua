@@ -75,6 +75,27 @@ local function createRisingPart(position)
 	task.delay(1, function() part:Destroy() end)
 end
 
+local function asuraFX(character, pos)
+	local repStorage = game:GetService("ReplicatedStorage").Moveset_Resources.onepiece_resources.Asura
+	
+	for i = 1,3 do
+		local vec = (pos * CFrame.Angles(0, math.rad(120 * i), 0)).LookVector
+		local dist = math.random(10, 20)
+		local lightning = repStorage["A - ELECTRICITY 01"]:Clone()
+		lightning.Parent = character
+		lightning.CFrame = pos + vec * dist
+		task.delay(1, function() lightning:Destroy() end)
+	end
+
+
+
+	for i = 1,7 do
+		local dist = math.random(10, 20)
+		local vec = (pos * CFrame.Angles(math.rad(math.random(360)), math.rad(math.random(360)), math.rad(math.random(360)))).LookVector
+		createRisingPart(pos + vec * dist, character)
+	end
+
+end
 
 -- Asura move server-side method as called in local controller. local generates hitbox and feeds the enemy as input along with data about 
 -- the move like execution time, distance of hitbox, damage, etc
