@@ -357,7 +357,7 @@ function OnepieceService.Client:doTeleport(player, data)
 	local b = beam.End.beam2
 	att.Parent, b.Parent = character.HumanoidRootPart, character.HumanoidRootPart
 	
-	task.delay(duration, function()
+	task.delay(1, function()
 		beam:Destroy()
 		att:Destroy()
 		b:Destroy()
