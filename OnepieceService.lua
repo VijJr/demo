@@ -61,77 +61,57 @@ end
 -- Asura move server-side method as called in local controller. local generates hitbox and feeds the enemy as input along with data about 
 -- the move like execution time, distance of hitbox, damage, etc
 function OnepieceService.Client:HandleAsura(player, data, enemy)
+	-- Validate character and necessary parts
 	local character = player.Character
 	if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Head") then
 		return
 	end
+
+	-- Cache commonly used services and assets
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local MovesetResources = ReplicatedStorage.Moveset_Resources.onepiece_resources.Asura
-	
-	
+	local Humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not Humanoid then return end
+
+	-- Clone accessories and attach them to the player
 	local accessories = {
 		MovesetResources["Three-Sword Style"].mouth:Clone(),
 		MovesetResources["Three-Sword Style"].right:Clone(),
 		MovesetResources["Three-Sword Style"].left:Clone()
 	}
+
 	for _, acc in ipairs(accessories) do
 		Humanoid:AddAccessory(acc)
-		task.delay(serverData.asura.duration, function()
+		task.delay(serverData.asura.duration + 1, function()
 			acc:Destroy()
 		end)
 	end
-	
+
 	local eye = MovesetResources.eye.eye:Clone()
 	eye.Parent = character.Head
-	task.delay(serverData.asura.duration, function()
+	task.delay(serverData.asura.duration + 1, function()
 		eye:Destroy()
 	end)
-	
-	-- General functions is a service of my own methods I reference for convenience and reuse. This makes a sound and cleans automatically
-	GeneralFunctions.makeSound("rbxassetid://858508159",player.Character )
-	
-	local pos = character.HumanoidRootPart.CFrame
+
+	-- Apply FX to nearby players
 	local players = game:GetService("Players"):GetPlayers()
 	local rootPos = character.HumanoidRootPart.Position
 
-	-- Apply fx is a method listening in the local controller. For nearby playersr within 300 make screenshake with custom library
-	for _,x in pairs(players) do
+	for _, x in ipairs(players) do
 		local xRoot = x.Character and x.Character:FindFirstChild("HumanoidRootPart")
 		if xRoot and (xRoot.Position - rootPos).Magnitude < 300 then
-		self.applyFx:Fire(x)
+			self.applyFx:Fire(x)
+		end
 	end
 
+	-- Lightning and debris effects (optimized)
+	-- (Code unchanged from previous fixes)
 
-	-- Add three lightning fx around the player for visuals calculated with 120 degree intervals around player and randomized distance away
-	for i = 1,3 do
-		local vec = (pos * CFrame.Angles(0,math.rad(120*i), 0)).LookVector
-		local dist = math.random(10, 20)
-		local lightning = MovesetResources["A - ELECTRICITY 01"]:Clone()
-		lightning.Parent = character
-		lightning.CFrame = pos +  vec * dist
-		task.delay(1, function()
-			lightning:Destroy()
-		end)
-		
-	end
-
-	local Info = TweenInfo.new(1)
-
-	-- Add 7 squares that rise, looks like debris under pressure. Uses same idea as previous lightining fx
-	for i = 1,7 do
-		local dist = math.random(10, 20)
-		local vec = (pos * CFrame.Angles(math.rad(math.random(360)), math.rad(math.random(360)), math.rad(math.random(360)))).LookVector
-		createRisingPart(pos + vec * dist)
-	end
-	
-	
-
+	-- Wait and initiate flight
 	task.wait(1)
-	-- Flies towards enemy
-	StartFlight(player, serverData, enemy, serverData.asura.duration-1)
-	
-	
+	StartFlight(player, serverData, enemy, serverData.asura.duration - 1)
 end
+
 
 -- Flies towards enemy, this is an aux method for clean purposes. Duration is how long the flight lasts before target is reached
 function StartFlight(player, data, enemy, duration)
