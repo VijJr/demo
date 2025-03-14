@@ -33,24 +33,6 @@ local OnepieceService = Knit.CreateService { Name = "OnepieceService", Client = 
 	stopSnake2 = Knit.CreateSignal()
 } }
 
-function OnepieceService:KnitInit()
-	dataService = Knit.GetService("DataService")
-	serverData = dataService.OPData
-	
-	-- Debounce
-	local db = false
-	-- Any entity/ player entering the mirror room will be able to warp out of the door 
-	game.Workspace["Mirror Room"].WindowWarp.Handle.Touched:Connect(function(hit)
-		if(hit.Parent:FindFirstChild("HumanoidRootPart")) then
-			if(db) then return end
-			db = true
-			hit.Parent.HumanoidRootPart.CFrame = CFrame.new(0,10,0)
-			wait(1)
-			db = false
-		end
-	end)
-end
-
 
 -- Knockback function with tuned parameters that work best for this move
 function doKb(char: Model, lookvector: Vector3, kbAmount: number, customMult: number)
