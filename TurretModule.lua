@@ -6,11 +6,6 @@ Turret.__index = Turret
 
 --[[
 	Note to reviewer:
-	
-	This code relies on a local script which is provided but not annotated
-	The driver that generates turrets is also provided but not annotated
-
-
 
 	File structure:
 	
